@@ -31,6 +31,13 @@
       }
     }
 
+    /**
+     * 
+     * @param {Function} task
+     * @param  {...any} args the last argument must be a callback function,
+     *                       and the first argument of this callback function
+     *                       must either be a null or error object.
+     */
     submit(task, ...args) {
       var cb, ref;
       ref = args, [...args] = ref, [cb] = splice.call(args, -1);
@@ -38,9 +45,16 @@
       return this._tryToRun();
     }
 
+    /**
+     * 
+     * @param {Function} task 
+     * @param  {...any} args
+     */
     schedule(task, ...args) {
-      var wrapped;
-      wrapped = function(...args) {
+      // The last argument of wrapped is a callback method which will call
+      // the resolve or reject method of the Promise to notify the finish
+      // of provided async task.
+      var wrapped = function(...args) {
         var cb, ref;
         ref = args, [...args] = ref, [cb] = splice.call(args, -1);
         return (task(...args)).then(function(...args) {
@@ -55,7 +69,6 @@
         });
       });
     }
-
   };
 
   module.exports = Sync;
