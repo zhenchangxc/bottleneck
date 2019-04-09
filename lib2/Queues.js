@@ -6,10 +6,13 @@
 
   Events = require("./Events");
 
+  /**
+   * Container of several job queues of different priority.
+   */
   Queues = class Queues {
     constructor(num_priorities) {
       this.Events = new Events(this);
-      this._length = 0;
+      this._length = 0; // ???
       // an array of DLList.
       // num_priorities >= 1 ? _lists.lenth = num_priorities : _lists.length = (2 - num_priorities)
       this._lists = (function() {
@@ -20,14 +23,18 @@
         return results;
       }).call(this);
     }
-
+    /**
+     * Increase this._length and trigger a "leftzero" event when this._length was 0 before the increment.
+     */
     incr() {
       if (this._length++ === 0) {
-        // Called when length was 0 before calling incr().
         return this.Events.trigger("leftzero");
       }
     }
 
+    /**
+     * Decrease this._length and trigger a "zero" event when this._length becomes to 0 after the decrement.  
+     */
     decr() {
       if (--this._length === 0) {
         return this.Events.trigger("zero");
@@ -44,6 +51,11 @@
       return this._lists[priority].push(job);
     }
 
+    /**
+     * Get queue length of the specified priority. ???
+     *
+     * @param {*} priority 
+     */
     queued(priority) {
       if (priority != null) {
         return this._lists[priority].length;
@@ -52,16 +64,23 @@
       }
     }
 
+    /**
+     * Shift all jobs from all queues and invoke callback function with each job.
+     * 
+     * @param {Function} fn 
+     */
     shiftAll(fn) {
-      return this._lists.forEach(function(list) {
-        return list.forEachShift(fn);
-      });
+      return this._lists.forEach(list => list.forEachShift(fn));
     }
 
+    /**
+     * Return the first non-empty queue or an empty array.
+     *
+     * @param {Array<Array>} arr default to this._lists  
+     */
     getFirst(arr = this._lists) {
-      var j, len, list;
-      for (j = 0, len = arr.length; j < len; j++) {
-        list = arr[j];
+      for (let j = 0; j < arr.length; j++) {
+        const list = arr[j];
         if (list.length > 0) {
           return list;
         }
@@ -69,10 +88,14 @@
       return [];
     }
 
+    /**
+     * Shift the first job from the queue whose priority is not less than specified and is the highest one.
+     *
+     * @param {Number} priority 
+     */
     shiftLastFrom(priority) {
       return this.getFirst(this._lists.slice(priority).reverse()).shift();
     }
-
   };
 
   module.exports = Queues;
