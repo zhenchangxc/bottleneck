@@ -5,7 +5,7 @@
   Events = class Events {
     constructor(instance) {
       this.instance = instance;
-      this._events = {};
+      this._events = {}; // { name: [ { cb, status }, ... ], name2: [...] }
       if ((this.instance.on != null) || (this.instance.once != null) || (this.instance.removeAllListeners != null)) {
         throw new Error("An Emitter already exists for this object");
       }
@@ -24,10 +24,16 @@
       };
     }
 
+    /**
+     * Add a listener to the listener array of the named event.
+     *
+     * @param {String} name 
+     * @param {String} status of listener, e.g.: once, error
+     * @param {Function} cb listener function
+     */
     _addListener(name, status, cb) {
-      var base;
-      if ((base = this._events)[name] == null) {
-        base[name] = [];
+      if (this._events[name] == null) {
+        this._events[name] = [];
       }
       this._events[name].push({cb, status});
       return this.instance;
@@ -41,8 +47,14 @@
       }
     }
 
+    /**
+     * Trigger all the listeners of the specified named event with the provided arguments.
+     *
+     * @param  {String} name of the event
+     * @param  {...any} args arguments of the listeners.
+     * @returns the first defined return value of the listener or undefined.
+     */
     async trigger(name, ...args) {
-      var e, promises;
       try {
         if (name !== "debug") {
           this.trigger("debug", `Event triggered: ${name}`, args);
@@ -50,44 +62,35 @@
         if (this._events[name] == null) {
           return;
         }
-        this._events[name] = this._events[name].filter(function(listener) {
-          return listener.status !== "none";
-        });
-        promises = this._events[name].map(async(listener) => {
-          var e, returned;
-          if (listener.status === "none") {
-            return;
-          }
+        this._events[name] = this._events[name].filter(listener => listener.status !== "none");
+        const promises = this._events[name].map(async (listener) => {
           if (listener.status === "once") {
+            // Change the listener status to none so it will be removed and not triggered next time for the same named event.
             listener.status = "none";
           }
           try {
-            returned = typeof listener.cb === "function" ? listener.cb(...args) : void 0;
+            // Call the listener and return the resolved result.
+            const returned = typeof listener.cb === "function" ? listener.cb(...args) : void 0;
             if (typeof (returned != null ? returned.then : void 0) === "function") {
               return (await returned);
             } else {
               return returned;
             }
           } catch (error) {
-            e = error;
             if ("name" !== "error") {
-              this.trigger("error", e);
+              this.trigger("error", error);
             }
             return null;
           }
         });
-        return ((await Promise.all(promises))).find(function(x) {
-          return x != null;
-        });
+        return (await Promise.all(promises)).find(x => x != null);
       } catch (error) {
-        e = error;
         if ("name" !== "error") {
-          this.trigger("error", e);
+          this.trigger("error", error);
         }
         return null;
       }
     }
-
   };
 
   module.exports = Events;

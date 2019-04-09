@@ -8,13 +8,13 @@
 
   Queues = class Queues {
     constructor(num_priorities) {
-      var i;
       this.Events = new Events(this);
       this._length = 0;
+      // an array of DLList.
+      // num_priorities >= 1 ? _lists.lenth = num_priorities : _lists.length = (2 - num_priorities)
       this._lists = (function() {
-        var j, ref, results;
-        results = [];
-        for (i = j = 1, ref = num_priorities; (1 <= ref ? j <= ref : j >= ref); i = 1 <= ref ? ++j : --j) {
+        const results = []; 
+        for (let j = 1; (num_priorities >= 1 ? j <= num_priorities : j >= num_priorities); 1 <= num_priorities ? ++j : --j) {
           results.push(new DLList(this));
         }
         return results;
@@ -23,6 +23,7 @@
 
     incr() {
       if (this._length++ === 0) {
+        // Called when length was 0 before calling incr().
         return this.Events.trigger("leftzero");
       }
     }
@@ -33,6 +34,12 @@
       }
     }
 
+    /**
+     * Add job to the queue of the specified priority.
+     * 
+     * @param {Number} priority num_priorities >= 1 ? priority in (0 ~ num_priorities-1) : priority in (0 ~ 1-num_priorities) 
+     * @param {Object} job { task, args, callback } 
+     */
     push(priority, job) {
       return this._lists[priority].push(job);
     }
