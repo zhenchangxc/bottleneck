@@ -23,6 +23,7 @@
         return results;
       }).call(this);
     }
+
     /**
      * Increase this._length and trigger a "leftzero" event when this._length was 0 before the increment.
      */
